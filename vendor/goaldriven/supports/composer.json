@@ -1,0 +1,41 @@
+{
+  "name": "goaldriven/supports",
+  "description": "StrongBase theme helpers for Wordpress development",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Ihsan Berahim",
+      "email": "ihsanberahim@gmail.com"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "GoalDriven\\Supports\\": ""
+    },
+    "files": [
+      "helpers.php"
+    ]
+  },
+  "config": {
+    "sort-packages": true,
+    "platform": {
+      "php": "5.6.40"
+    }
+  },
+  "require": {
+    "galbar/jsonpath": "^1.0",
+    "illuminate/container": "^5.4",
+    "illuminate/database": "^5.4",
+    "illuminate/events": "^5.4",
+    "illuminate/filesystem": "^5.4",
+    "illuminate/http": "^5.4",
+    "illuminate/support": "^5.4",
+    "illuminate/translation": "^5.4",
+    "illuminate/validation": "^5.4",
+    "illuminate/view": "^5.4",
+    "matthiasmullie/minify": "^1.3",
+    "monolog/monolog": "^1.24",
+    "nikic/fast-route": "^1.3",
+    "symfony/var-dumper": "^3.4"
+  }
+}
