@@ -1,0 +1,19 @@
+{
+  "name": "goaldriven/wordpress-supports",
+  "description": "dependencies for wordpress plugins build by GoalDriven",
+  "authors": [
+    {
+      "name": "Ihsan Berahim",
+      "email": "ihsanberahim@gmail.com"
+    }
+  ],
+  "repositories": [
+    {
+      "type": "git",
+      "url": "git@bitbucket.org:goaldriven/supports.git"
+    }
+  ],
+  "require": {
+    "goaldriven/supports": "dev-master"
+  }
+}
