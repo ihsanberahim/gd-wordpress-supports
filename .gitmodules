@@ -1,0 +1,3 @@
+[submodule "vendor/goaldriven/supports"]
+	path = vendor/goaldriven/supports
+	url = git@bitbucket.org:goaldriven/supports.git
