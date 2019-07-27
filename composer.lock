@@ -127,7 +127,7 @@
             "source": {
                 "type": "git",
                 "url": "git@bitbucket.org:goaldriven/supports.git",
-                "reference": "196b3edfa2bad23a6331da81997f8f863e270cf5"
+                "reference": "6d8c443c8af0e786253257759887ee464c1da10f"
             },
             "require": {
                 "galbar/jsonpath": "^1.0",
@@ -165,7 +165,7 @@
                 }
             ],
             "description": "StrongBase theme helpers for Wordpress development",
-            "time": "2019-07-27T09:12:09+00:00"
+            "time": "2019-07-27T09:47:05+00:00"
         },
         {
             "name": "illuminate/container",

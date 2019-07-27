@@ -1,13 +1,13 @@
 <?php
 /**
  * Plugin Name:     Gd Wordpress Supports
- * Plugin URI:      https://goaldriven.co/?s=Gd+Wordpress+Supports
+ * Plugin URI:      https://github.com/ihsanberahim/gd-wordpress-supports
  * Description:     Vendor for themes or plugins developed by GoalDriven.co
  * Author:          IhsanBerahim <ihsanberahim@gmail.com>
  * Author URI:      https://blog.ihsanberahim.com
  * Text Domain:     gd-wordpress-supports
  * Domain Path:     /languages
- * Version:         1.1.2
+ * Version:         1.1.3
  *
  * @package         Gd_Wordpress_Supports
  */
@@ -38,8 +38,11 @@ function gdwps_activation_hook() {
 register_activation_hook( __FILE__, 'gdwps_activation_hook' );
 
 
-/**
- * Enable version checker
- */
-$checker = gd_setup_plugin_update_checker( __FILE__ );
-$checker->setBranch( 'master' );
+add_action('plugins_loaded', function() {
+	/**
+	 * Enable version checker
+	 */
+	if( $checker = gd_setup_plugin_update_checker( __FILE__ ) ) {
+		$checker->setBranch( 'master' );
+	}
+});

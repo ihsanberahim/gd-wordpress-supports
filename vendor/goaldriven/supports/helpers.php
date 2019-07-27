@@ -19,16 +19,24 @@ if ( ! function_exists( 'gd_setup_plugin_update_checker' ) ) {
 		$plugin_data = gd_plugin_data( $plugin_file_path );
 		$plugin_uri  = $plugin_data->get( 'PluginURI' );
 
-		$updateChecker = Puc_v4_Factory::buildUpdateChecker(
-			$plugin_uri,
-			$plugin_file_path,
-			$plugin_slug
-		);
+		// Handle error
+		// a) when plugin dev. put wrong 'Plugin URI'
+		// b) when fail to setup authentication
+		try {
+			$updateChecker = Puc_v4_Factory::buildUpdateChecker(
+				$plugin_uri, // a)
+				$plugin_file_path,
+				$plugin_slug
+			);
 
-		$updateChecker->setAuthentication( [
-			'consumer_key'    => immutable( $key_const, null ),
-			'consumer_secret' => immutable( $secret_const, null ),
-		] );
+			// b)
+			$updateChecker->setAuthentication( [
+				'consumer_key'    => immutable( $key_const, null ),
+				'consumer_secret' => immutable( $secret_const, null ),
+			] );
+		} catch ( Exception $e ) {
+			return false;
+		}
 
 		return $updateChecker;
 	}
