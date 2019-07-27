@@ -41,10 +41,5 @@ register_activation_hook( __FILE__, 'gdwps_activation_hook' );
 /**
  * Enable version checker
  */
-$updateChecker = Puc_v4_Factory::buildUpdateChecker(
-	'https://github.com/ihsanberahim/gd-wordpress-supports',
-	__FILE__,
-	'gd-wordpress-supports'
-);
-
-$updateChecker->setBranch('master');
+$checker = gd_setup_plugin_update_checker( __FILE__ );
+$checker->setBranch( 'master' );

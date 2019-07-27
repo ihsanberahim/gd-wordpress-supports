@@ -29,6 +29,8 @@ if ( ! function_exists( 'gd_setup_plugin_update_checker' ) ) {
 			'consumer_key'    => immutable( $key_const, null ),
 			'consumer_secret' => immutable( $secret_const, null ),
 		] );
+
+		return $updateChecker;
 	}
 }
 
