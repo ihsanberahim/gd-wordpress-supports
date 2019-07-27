@@ -1,5 +1,6 @@
 <?php
 
+use GoalDriven\Supports\Drivers\BitbucketApi;
 use Illuminate\Container\Container;
 use Illuminate\Events\Dispatcher;
 use Illuminate\Filesystem\Filesystem;
@@ -15,9 +16,10 @@ use Monolog\Logger;
 
 if ( ! function_exists( 'gd_setup_plugin_update_checker' ) ) {
 	function gd_setup_plugin_update_checker( $plugin_file_path, $key_const = 'GD_CONSUMER_KEY', $secret_const = 'GD_CONSUMER_SECRET' ) {
-		$plugin_slug = gd_plugin_slug( $plugin_file_path );
-		$plugin_data = gd_plugin_data( $plugin_file_path );
-		$plugin_uri  = $plugin_data->get( 'PluginURI' );
+		$plugin_slug  = gd_plugin_slug( $plugin_file_path );
+		$plugin_data  = gd_plugin_data( $plugin_file_path );
+		$plugin_uri   = $plugin_data->get( 'PluginURI' );
+		$const_prefix = str_replace( '-', '_', strtoupper( $plugin_slug ) );
 
 		// Handle error
 		// a) when plugin dev. put wrong 'Plugin URI'
@@ -30,11 +32,20 @@ if ( ! function_exists( 'gd_setup_plugin_update_checker' ) ) {
 			);
 
 			// b)
-			$updateChecker->setAuthentication( [
-				'consumer_key'    => immutable( $key_const, null ),
-				'consumer_secret' => immutable( $secret_const, null ),
-			] );
+			if ( $consumer_key = immutable( "{$const_prefix}_CONSUMER_KEY", null ) ) {
+				if ( $consumer_secret = immutable( "{$const_prefix}_CONSUMER_SECRET", null ) ) {
+					$credentials = [
+						'consumer_key'    => $consumer_key,
+						'consumer_secret' => $consumer_secret,
+					];
+
+					$updateChecker->setAuthentication( $credentials );
+				}
+			}
+
 		} catch ( Exception $e ) {
+			gd_log()->error( $e->getMessage() );
+
 			return false;
 		}
 

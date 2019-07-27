@@ -7,7 +7,7 @@
  * Author URI:      https://blog.ihsanberahim.com
  * Text Domain:     gd-wordpress-supports
  * Domain Path:     /languages
- * Version:         1.1.3
+ * Version:         1.1.4
  *
  * @package         Gd_Wordpress_Supports
  */
