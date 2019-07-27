@@ -7,7 +7,7 @@
  * Author URI:      https://blog.ihsanberahim.com
  * Text Domain:     gd-wordpress-supports
  * Domain Path:     /languages
- * Version:         0.1.0
+ * Version:         1.0.0
  *
  * @package         Gd_Wordpress_Supports
  */
@@ -22,6 +22,9 @@ define( 'GDWPS_ACTIVE', true );
 
 use \Illuminate\Support\Str;
 
+/**
+ * Sort this plugin to priorities
+ */
 add_filter( 'pre_update_option_active_plugins', function ( $plugins ) {
 	return collect( $plugins )->sortBy( function ( $plugin, $key ) use ( $plugins ) {
 		return Str::is( 'gd-wordpress-supports*', $plugin ) ? 0 : count( $plugins ) - $key;
@@ -34,12 +37,14 @@ function gdwps_activation_hook() {
 
 register_activation_hook( __FILE__, 'gdwps_activation_hook' );
 
-add_action('admin_init', function() {
-	$updateChecker = Puc_v4_Factory::buildUpdateChecker(
-		'https://github.com/ihsanberahim/gd-wordpress-supports',
-		__FILE__,
-		'gd-wordpress-supports'
-	);
 
-	$updateChecker->setBranch('master');
-});
+/**
+ * Enable version checker
+ */
+$updateChecker = Puc_v4_Factory::buildUpdateChecker(
+	'https://github.com/ihsanberahim/gd-wordpress-supports',
+	__FILE__,
+	'gd-wordpress-supports'
+);
+
+$updateChecker->setBranch('master');
