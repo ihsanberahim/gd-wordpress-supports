@@ -11,14 +11,9 @@
     {
       "type": "git",
       "url": "git@bitbucket.org:goaldriven/supports.git"
-    },
-    {
-      "type": "git",
-      "url": "git@bitbucket.org:goaldriven/plugin-update-checker.git"
     }
   ],
   "require": {
-    "goaldriven/supports": "dev-master",
-    "yahnis-elsts/plugin-update-checker": "^4.7"
+    "goaldriven/supports": "dev-master"
   }
 }

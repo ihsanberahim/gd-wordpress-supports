@@ -22,6 +22,12 @@
       "php": "5.6.40"
     }
   },
+  "resitories": [
+    {
+      "type": "git",
+      "url": "git@bitbucket.org:goaldriven/plugin-update-checker.git"
+    }
+  ],
   "require": {
     "galbar/jsonpath": "^1.0",
     "illuminate/container": "^5.4",
@@ -36,6 +42,7 @@
     "matthiasmullie/minify": "^1.3",
     "monolog/monolog": "^1.24",
     "nikic/fast-route": "^1.3",
-    "symfony/var-dumper": "^3.4"
+    "symfony/var-dumper": "^3.4",
+    "yahnis-elsts/plugin-update-checker": "^4.7"
   }
 }
