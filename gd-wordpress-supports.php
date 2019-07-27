@@ -18,9 +18,9 @@ try {
 	return;
 }
 
-define( 'GDWPS_ACTIVE', true );
-
 use \Illuminate\Support\Str;
+
+define( 'GDWPS_ACTIVE', true );
 
 /**
  * Sort this plugin to priorities

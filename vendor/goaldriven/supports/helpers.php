@@ -10,9 +10,39 @@ use Illuminate\View\Engines\PhpEngine;
 use Illuminate\View\Factory;
 use Illuminate\View\FileViewFinder;
 use Illuminate\Support\Carbon;
-use JsonPath\JsonObject;
 use Monolog\Handler\StreamHandler;
 use Monolog\Logger;
+
+if ( ! function_exists( 'gd_setup_plugin_update_checker' ) ) {
+	function gd_setup_plugin_update_checker( $plugin_file_path, $key_const = 'GD_CONSUMER_KEY', $secret_const = 'GD_CONSUMER_SECRET' ) {
+		$plugin_slug = gd_plugin_slug( $plugin_file_path );
+		$plugin_data = gd_plugin_data( $plugin_file_path );
+		$plugin_uri  = $plugin_data->get( 'PluginURI' );
+
+		$updateChecker = Puc_v4_Factory::buildUpdateChecker(
+			$plugin_uri,
+			$plugin_file_path,
+			$plugin_slug
+		);
+
+		$updateChecker->setAuthentication( [
+			'consumer_key'    => immutable( $key_const, null ),
+			'consumer_secret' => immutable( $secret_const, null ),
+		] );
+	}
+}
+
+if ( ! function_exists( 'gd_plugin_data' ) ) {
+	function gd_plugin_data( $plugin_file_path ) {
+		return collect( get_plugin_data( $plugin_file_path ) );
+	}
+}
+
+if ( ! function_exists( 'gd_plugin_slug' ) ) {
+	function gd_plugin_slug( $plugin_file_path ) {
+		return explode( '.', basename( $plugin_file_path ) )[0];
+	}
+}
 
 if ( ! function_exists( 'gd_new_comp' ) ) {
 	function gd_new_comp( $pluginFilePath = null ) {
@@ -135,10 +165,10 @@ if ( ! function_exists( 'gd_view_factory' ) ) {
 
 if ( ! function_exists( 'gd_config' ) ) {
 	function gd_config( $json ) {
-		if( is_file($json) ) {
+		if ( is_file( $json ) ) {
 			$json = require $json;
 		}
 
-		return collect($json);
+		return collect( $json );
 	}
 }
