@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "abd3eeb306dd0b30d9c16efbd3bc5781",
+    "content-hash": "f0001191732d4803e5d1e2a571e3eafe",
     "packages": [
         {
             "name": "doctrine/inflector",
@@ -2060,7 +2060,7 @@
             "version": "v4.7",
             "source": {
                 "type": "git",
-                "url": "https://github.com/YahnisElsts/plugin-update-checker.git",
+                "url": "git@bitbucket.org:goaldriven/plugin-update-checker.git",
                 "reference": "6da68b119277a400fad0ca6ec54f223b10bd8230"
             },
             "dist": {

@@ -2128,7 +2128,7 @@
         "version_normalized": "4.7.0.0",
         "source": {
             "type": "git",
-            "url": "https://github.com/YahnisElsts/plugin-update-checker.git",
+            "url": "git@bitbucket.org:goaldriven/plugin-update-checker.git",
             "reference": "6da68b119277a400fad0ca6ec54f223b10bd8230"
         },
         "dist": {

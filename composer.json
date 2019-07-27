@@ -11,6 +11,10 @@
     {
       "type": "git",
       "url": "git@bitbucket.org:goaldriven/supports.git"
+    },
+    {
+      "type": "git",
+      "url": "git@bitbucket.org:goaldriven/plugin-update-checker.git"
     }
   ],
   "require": {
