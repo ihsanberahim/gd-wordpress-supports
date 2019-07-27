@@ -33,3 +33,13 @@ function gdwps_activation_hook() {
 }
 
 register_activation_hook( __FILE__, 'gdwps_activation_hook' );
+
+add_action('admin_init', function() {
+	$updateChecker = Puc_v4_Factory::buildUpdateChecker(
+		'https://github.com/ihsanberahim/gd-wordpress-supports',
+		__FILE__,
+		'gd-wordpress-supports'
+	);
+
+	$updateChecker->setBranch('master');
+});

@@ -14,6 +14,7 @@
     }
   ],
   "require": {
-    "goaldriven/supports": "dev-master"
+    "goaldriven/supports": "dev-master",
+    "yahnis-elsts/plugin-update-checker": "^4.7"
   }
 }
