@@ -38,11 +38,11 @@ function gdwps_activation_hook() {
 register_activation_hook( __FILE__, 'gdwps_activation_hook' );
 
 
-add_action('plugins_loaded', function() {
+add_action( 'setup_theme', function () {
 	/**
 	 * Enable version checker
 	 */
-	if( $checker = gd_setup_plugin_update_checker( __FILE__ ) ) {
-		$checker->setBranch( 'master' );
+	if ( $checker = gd_setup_plugin_update_checker( __FILE__ ) ) {
+		// $checker->setBranch( 'master' ); // temporary disabled as sometime it not work.
 	}
-});
+} );
