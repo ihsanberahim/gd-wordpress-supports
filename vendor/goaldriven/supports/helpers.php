@@ -92,7 +92,11 @@ if ( ! function_exists( 'gd_setup_plugin_update_checker' ) ) {
 
 if ( ! function_exists( 'gd_plugin_data' ) ) {
 	function gd_plugin_data( $plugin_file_path ) {
-		return collect( get_plugin_data( $plugin_file_path ) );
+		if( is_admin() ) {
+			return collect( get_plugin_data( $plugin_file_path ) );
+		}
+
+		return collect([]);
 	}
 }
 

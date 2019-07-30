@@ -125,7 +125,7 @@
         "source": {
             "type": "git",
             "url": "git@bitbucket.org:goaldriven/supports.git",
-            "reference": "cfc00830b828afd868763cdde758ae9fd902f6f2"
+            "reference": "ea8f6a5d258754423055bae88496b5a9e264d922"
         },
         "require": {
             "galbar/jsonpath": "^1.0",
@@ -144,7 +144,7 @@
             "symfony/var-dumper": "^3.4",
             "yahnis-elsts/plugin-update-checker": "^4.7"
         },
-        "time": "2019-07-30T11:39:54+00:00",
+        "time": "2019-07-30T12:05:28+00:00",
         "type": "library",
         "installation-source": "source",
         "autoload": {
