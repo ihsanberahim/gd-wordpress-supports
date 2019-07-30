@@ -1,6 +1,5 @@
 <?php
 
-use GoalDriven\Supports\Drivers\BitbucketApi;
 use Illuminate\Container\Container;
 use Illuminate\Events\Dispatcher;
 use Illuminate\Filesystem\Filesystem;
@@ -14,8 +13,46 @@ use Illuminate\Support\Carbon;
 use Monolog\Handler\StreamHandler;
 use Monolog\Logger;
 
+if ( ! function_exists( 'gd_setup_template_update_checker' ) ) {
+	function gd_setup_template_update_checker( $theme_function_file_path ) {
+		$theme_slug   = get_template();
+		$theme        = wp_get_theme();
+		$theme_uri    = $theme->get( 'ThemeURI' );
+		$const_prefix = str_replace( '-', '_', strtoupper( $theme_slug ) );
+
+		// Handle error
+		// a) when theme dev. put wrong 'Theme URI'
+		// b) when fail to setup authentication
+		try {
+			$updateChecker = Puc_v4_Factory::buildUpdateChecker(
+				$theme_uri, // a)
+				$theme_function_file_path,
+				$theme_slug
+			);
+
+			// b)
+			if ( $consumer_key = immutable( "{$const_prefix}_CONSUMER_KEY", null ) ) {
+				if ( $consumer_secret = immutable( "{$const_prefix}_CONSUMER_SECRET", null ) ) {
+					$credentials = [
+						'consumer_key'    => $consumer_key,
+						'consumer_secret' => $consumer_secret,
+					];
+
+					$updateChecker->setAuthentication( $credentials );
+				}
+			}
+
+		} catch ( Exception $e ) {
+			gd_log()->error( $e->getMessage() );
+
+			return false;
+		}
+
+		return $updateChecker;
+	}
+}
 if ( ! function_exists( 'gd_setup_plugin_update_checker' ) ) {
-	function gd_setup_plugin_update_checker( $plugin_file_path, $key_const = 'GD_CONSUMER_KEY', $secret_const = 'GD_CONSUMER_SECRET' ) {
+	function gd_setup_plugin_update_checker( $plugin_file_path ) {
 		$plugin_slug  = gd_plugin_slug( $plugin_file_path );
 		$plugin_data  = gd_plugin_data( $plugin_file_path );
 		$plugin_uri   = $plugin_data->get( 'PluginURI' );
