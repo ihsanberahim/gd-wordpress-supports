@@ -11,7 +11,6 @@
 
 namespace Symfony\Component\HttpFoundation\Tests;
 
-use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -306,7 +305,7 @@ class ResponseTest extends ResponseTestCase
         $response = new Response();
         $response->headers->set('Cache-Control', 'must-revalidate');
         $response->headers->set('Expires', -1);
-        $this->assertLessThanOrEqual(time() - 2 * 86400, $response->getExpires()->format('U'));
+        $this->assertEquals('Sat, 01 Jan 00 00:00:00 +0000', $response->getExpires()->format(DATE_RFC822));
 
         $response = new Response();
         $this->assertNull($response->getMaxAge(), '->getMaxAge() returns null if no freshness information available');
@@ -368,6 +367,12 @@ class ResponseTest extends ResponseTestCase
         $response->headers->set('Expires', date(DATE_RFC2822, time() + 600));
         $response->expire();
         $this->assertNull($response->headers->get('Expires'), '->expire() removes the Expires header when the response is fresh');
+    }
+
+    public function testNullExpireHeader()
+    {
+        $response = new Response(null, 200, ['Expires' => null]);
+        $this->assertNull($response->getExpires());
     }
 
     public function testGetTtl()
@@ -533,7 +538,6 @@ class ResponseTest extends ResponseTestCase
         $response->prepare($request);
         $this->assertEquals('', $response->getContent());
         $this->assertFalse($response->headers->has('Content-Type'));
-        $this->assertFalse($response->headers->has('Content-Type'));
 
         $response->setContent('content');
         $response->setStatusCode(304);
@@ -574,24 +578,6 @@ class ResponseTest extends ResponseTestCase
         $this->assertFalse($response->headers->has('expires'));
     }
 
-    public function testPrepareSetsCookiesSecure()
-    {
-        $cookie = Cookie::create('foo', 'bar');
-
-        $response = new Response('foo');
-        $response->headers->setCookie($cookie);
-
-        $request = Request::create('/', 'GET');
-        $response->prepare($request);
-
-        $this->assertFalse($cookie->isSecure());
-
-        $request = Request::create('https://localhost/', 'GET');
-        $response->prepare($request);
-
-        $this->assertTrue($cookie->isSecure());
-    }
-
     public function testSetCache()
     {
         $response = new Response();
@@ -601,7 +587,7 @@ class ResponseTest extends ResponseTestCase
             $this->fail('->setCache() throws an InvalidArgumentException if an option is not supported');
         } catch (\Exception $e) {
             $this->assertInstanceOf('InvalidArgumentException', $e, '->setCache() throws an InvalidArgumentException if an option is not supported');
-            $this->assertContains('"wrong option"', $e->getMessage());
+            $this->assertStringContainsString('"wrong option"', $e->getMessage());
         }
 
         $options = ['etag' => '"whatever"'];
@@ -654,7 +640,7 @@ class ResponseTest extends ResponseTestCase
         ob_start();
         $response->sendContent();
         $string = ob_get_clean();
-        $this->assertContains('test response rendering', $string);
+        $this->assertStringContainsString('test response rendering', $string);
     }
 
     public function testSetPublic()
@@ -682,22 +668,6 @@ class ResponseTest extends ResponseTestCase
         $this->assertTrue($response->isImmutable());
     }
 
-    public function testSetDate()
-    {
-        $response = new Response();
-        $response->setDate(\DateTime::createFromFormat(\DateTime::ATOM, '2013-01-26T09:21:56+0100', new \DateTimeZone('Europe/Berlin')));
-
-        $this->assertEquals('2013-01-26T08:21:56+00:00', $response->getDate()->format(\DateTime::ATOM));
-    }
-
-    public function testSetDateWithImmutable()
-    {
-        $response = new Response();
-        $response->setDate(\DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2013-01-26T09:21:56+0100', new \DateTimeZone('Europe/Berlin')));
-
-        $this->assertEquals('2013-01-26T08:21:56+00:00', $response->getDate()->format(\DateTime::ATOM));
-    }
-
     public function testSetExpires()
     {
         $response = new Response();
@@ -711,30 +681,10 @@ class ResponseTest extends ResponseTestCase
         $this->assertEquals($response->getExpires()->getTimestamp(), $now->getTimestamp());
     }
 
-    public function testSetExpiresWithImmutable()
-    {
-        $response = new Response();
-
-        $now = $this->createDateTimeImmutableNow();
-        $response->setExpires($now);
-
-        $this->assertEquals($response->getExpires()->getTimestamp(), $now->getTimestamp());
-    }
-
     public function testSetLastModified()
     {
         $response = new Response();
         $response->setLastModified($this->createDateTimeNow());
-        $this->assertNotNull($response->getLastModified());
-
-        $response->setLastModified(null);
-        $this->assertNull($response->getLastModified());
-    }
-
-    public function testSetLastModifiedWithImmutable()
-    {
-        $response = new Response();
-        $response->setLastModified($this->createDateTimeImmutableNow());
         $this->assertNotNull($response->getLastModified());
 
         $response->setLastModified(null);
@@ -901,11 +851,11 @@ class ResponseTest extends ResponseTestCase
     }
 
     /**
-     * @expectedException \UnexpectedValueException
      * @dataProvider invalidContentProvider
      */
     public function testSetContentInvalid($content)
     {
+        $this->expectException('UnexpectedValueException');
         $response = new Response();
         $response->setContent($content);
     }
@@ -977,24 +927,17 @@ class ResponseTest extends ResponseTestCase
         return $date->setTimestamp(time());
     }
 
-    protected function createDateTimeImmutableNow()
-    {
-        $date = new \DateTimeImmutable();
-
-        return $date->setTimestamp(time());
-    }
-
     protected function provideResponse()
     {
         return new Response();
     }
 
     /**
-     * @see       http://github.com/zendframework/zend-diactoros for the canonical source repository
+     * @see http://github.com/zendframework/zend-diactoros for the canonical source repository
      *
-     * @author    Fábio Pacheco
+     * @author Fábio Pacheco
      * @copyright Copyright (c) 2015-2016 Zend Technologies USA Inc. (http://www.zend.com)
-     * @license   https://github.com/zendframework/zend-diactoros/blob/master/LICENSE.md New BSD License
+     * @license https://github.com/zendframework/zend-diactoros/blob/master/LICENSE.md New BSD License
      */
     public function ianaCodesReasonPhrasesProvider()
     {

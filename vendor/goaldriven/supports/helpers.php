@@ -93,6 +93,10 @@ if ( ! function_exists( 'gd_setup_plugin_update_checker' ) ) {
 if ( ! function_exists( 'gd_plugin_data' ) ) {
 	function gd_plugin_data( $plugin_file_path ) {
 		if( is_admin() ) {
+			if( !function_exists('get_plugin_data') ){
+				require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+			}
+			
 			return collect( get_plugin_data( $plugin_file_path ) );
 		}
 

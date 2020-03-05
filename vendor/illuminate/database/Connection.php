@@ -109,13 +109,6 @@ class Connection implements ConnectionInterface
     protected $transactions = 0;
 
     /**
-     * Indicates if changes have been made to the database.
-     *
-     * @var int
-     */
-    protected $recordsModified = false;
-
-    /**
      * All of the queries run against the connection.
      *
      * @var array
@@ -453,8 +446,6 @@ class Connection implements ConnectionInterface
 
             $this->bindValues($statement, $this->prepareBindings($bindings));
 
-            $this->recordsHaveBeenModified();
-
             return $statement->execute();
         });
     }
@@ -482,11 +473,7 @@ class Connection implements ConnectionInterface
 
             $statement->execute();
 
-            $this->recordsHaveBeenModified(
-                ($count = $statement->rowCount()) > 0
-            );
-
-            return $count;
+            return $statement->rowCount();
         });
     }
 
@@ -503,11 +490,7 @@ class Connection implements ConnectionInterface
                 return true;
             }
 
-            $this->recordsHaveBeenModified(
-                $change = $this->getPdo()->exec($query) !== false
-            );
-
-            return $change;
+            return $this->getPdo()->exec($query) === false ? false : true;
         });
     }
 
@@ -552,7 +535,7 @@ class Connection implements ConnectionInterface
 
         // Now we'll execute this callback and capture the result. Once it has been
         // executed we will restore the value of query logging and give back the
-        // value of the callback so the original callers can have the results.
+        // value of hte callback so the original callers can have the results.
         $result = $callback();
 
         $this->loggingQueries = $loggingQueries;
@@ -593,8 +576,8 @@ class Connection implements ConnectionInterface
             // so we'll just ask the grammar for the format to get from the date.
             if ($value instanceof DateTimeInterface) {
                 $bindings[$key] = $value->format($grammar->getDateFormat());
-            } elseif (is_bool($value)) {
-                $bindings[$key] = (int) $value;
+            } elseif ($value === false) {
+                $bindings[$key] = 0;
             }
         }
 
@@ -838,19 +821,6 @@ class Connection implements ConnectionInterface
     }
 
     /**
-     * Indicate if any records have been modified.
-     *
-     * @param  bool  $value
-     * @return void
-     */
-    public function recordsHaveBeenModified($value = true)
-    {
-        if (! $this->recordsModified) {
-            $this->recordsModified = $value;
-        }
-    }
-
-    /**
      * Is Doctrine available?
      *
      * @return bool
@@ -892,13 +862,11 @@ class Connection implements ConnectionInterface
     public function getDoctrineConnection()
     {
         if (is_null($this->doctrineConnection)) {
-            $driver = $this->getDoctrineDriver();
+            $data = ['pdo' => $this->getPdo(), 'dbname' => $this->getConfig('database')];
 
-            $this->doctrineConnection = new DoctrineConnection([
-                'pdo' => $this->getPdo(),
-                'dbname' => $this->getConfig('database'),
-                'driver' => $driver->getName(),
-            ], $driver);
+            $this->doctrineConnection = new DoctrineConnection(
+                $data, $this->getDoctrineDriver()
+            );
         }
 
         return $this->doctrineConnection;
@@ -925,11 +893,7 @@ class Connection implements ConnectionInterface
      */
     public function getReadPdo()
     {
-        if ($this->transactions > 0) {
-            return $this->getPdo();
-        }
-
-        if ($this->recordsModified && $this->getConfig('sticky')) {
+        if ($this->transactions >= 1) {
             return $this->getPdo();
         }
 
@@ -958,7 +922,7 @@ class Connection implements ConnectionInterface
     /**
      * Set the PDO connection used for reading.
      *
-     * @param  \PDO|\Closure|null  $pdo
+     * @param  \PDO||\Closure|null  $pdo
      * @return $this
      */
     public function setReadPdo($pdo)
@@ -1094,16 +1058,6 @@ class Connection implements ConnectionInterface
     public function setEventDispatcher(Dispatcher $events)
     {
         $this->events = $events;
-    }
-
-    /**
-     * Unset the event dispatcher for this connection.
-     *
-     * @return void
-     */
-    public function unsetEventDispatcher()
-    {
-        $this->events = null;
     }
 
     /**
@@ -1243,6 +1197,7 @@ class Connection implements ConnectionInterface
      */
     public static function getResolver($driver)
     {
-        return static::$resolvers[$driver] ?? null;
+        return isset(static::$resolvers[$driver]) ?
+                     static::$resolvers[$driver] : null;
     }
 }

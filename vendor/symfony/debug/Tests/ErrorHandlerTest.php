@@ -283,6 +283,10 @@ class ErrorHandlerTest extends TestCase
 
     public function testHandleUserError()
     {
+        if (\PHP_VERSION_ID >= 70400) {
+            $this->markTestSkipped('PHP 7.4 allows __toString to throw exceptions');
+        }
+
         try {
             $handler = ErrorHandler::register();
             $handler->throwAt(0, true);
@@ -327,6 +331,9 @@ class ErrorHandlerTest extends TestCase
         restore_error_handler();
     }
 
+    /**
+     * @group no-hhvm
+     */
     public function testHandleException()
     {
         try {
@@ -361,6 +368,38 @@ class ErrorHandlerTest extends TestCase
             });
 
             $handler->handleException($exception);
+        } finally {
+            restore_error_handler();
+            restore_exception_handler();
+        }
+    }
+
+    /**
+     * @group legacy
+     */
+    public function testErrorStacking()
+    {
+        try {
+            $handler = ErrorHandler::register();
+            $handler->screamAt(E_USER_WARNING);
+
+            $logger = $this->getMockBuilder('Psr\Log\LoggerInterface')->getMock();
+
+            $logger
+                ->expects($this->exactly(2))
+                ->method('log')
+                ->withConsecutive(
+                    [$this->equalTo(LogLevel::WARNING), $this->equalTo('Dummy log')],
+                    [$this->equalTo(LogLevel::DEBUG), $this->equalTo('User Warning: Silenced warning')]
+                )
+            ;
+
+            $handler->setDefaultLogger($logger, [E_USER_WARNING => LogLevel::WARNING]);
+
+            ErrorHandler::stackErrors();
+            @trigger_error('Silenced warning', E_USER_WARNING);
+            $logger->log(LogLevel::WARNING, 'Dummy log');
+            ErrorHandler::unstackErrors();
         } finally {
             restore_error_handler();
             restore_exception_handler();
@@ -418,6 +457,9 @@ class ErrorHandlerTest extends TestCase
         $handler->setLoggers([E_DEPRECATED => [$mockLogger, LogLevel::WARNING]]);
     }
 
+    /**
+     * @group no-hhvm
+     */
     public function testSettingLoggerWhenExceptionIsBuffered()
     {
         $bootLogger = new BufferingLogger();
@@ -437,6 +479,9 @@ class ErrorHandlerTest extends TestCase
         $handler->handleException($exception);
     }
 
+    /**
+     * @group no-hhvm
+     */
     public function testHandleFatalError()
     {
         try {
@@ -476,6 +521,9 @@ class ErrorHandlerTest extends TestCase
         }
     }
 
+    /**
+     * @requires PHP 7
+     */
     public function testHandleErrorException()
     {
         $exception = new \Error("Class 'IReallyReallyDoNotExistAnywhereInTheRepositoryISwear' not found");
@@ -492,10 +540,48 @@ class ErrorHandlerTest extends TestCase
     }
 
     /**
-     * @expectedException \Exception
+     * @group no-hhvm
+     */
+    public function testHandleFatalErrorOnHHVM()
+    {
+        try {
+            $handler = ErrorHandler::register();
+
+            $logger = $this->getMockBuilder('Psr\Log\LoggerInterface')->getMock();
+            $logger
+                ->expects($this->once())
+                ->method('log')
+                ->with(
+                    $this->equalTo(LogLevel::CRITICAL),
+                    $this->equalTo('Fatal Error: foo')
+                )
+            ;
+
+            $handler->setDefaultLogger($logger, E_ERROR);
+
+            $error = [
+                'type' => E_ERROR + 0x1000000, // This error level is used by HHVM for fatal errors
+                'message' => 'foo',
+                'file' => 'bar',
+                'line' => 123,
+                'context' => [123],
+                'backtrace' => [456],
+            ];
+
+            \call_user_func_array([$handler, 'handleError'], $error);
+            $handler->handleFatalError($error);
+        } finally {
+            restore_error_handler();
+            restore_exception_handler();
+        }
+    }
+
+    /**
+     * @group no-hhvm
      */
     public function testCustomExceptionHandler()
     {
+        $this->expectException('Exception');
         $handler = new ErrorHandler();
         $handler->setExceptionHandler(function ($e) use ($handler) {
             $handler->handleException($e);

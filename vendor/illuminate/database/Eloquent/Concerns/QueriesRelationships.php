@@ -3,11 +3,10 @@
 namespace Illuminate\Database\Eloquent\Concerns;
 
 use Closure;
-use RuntimeException;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Expression;
-use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 
@@ -30,10 +29,6 @@ trait QueriesRelationships
         }
 
         $relation = $this->getRelationWithoutConstraints($relation);
-
-        if ($relation instanceof MorphTo) {
-            throw new RuntimeException('has() and whereHas() do not support MorphTo relationships.');
-        }
 
         // If we only need to check for the existence of the relation, then we can optimize
         // the subquery to only run a "where exists" clause instead of this full "count"
@@ -74,7 +69,7 @@ trait QueriesRelationships
     {
         $relations = explode('.', $relations);
 
-        $closure = function ($q) use (&$closure, &$relations, $operator, $count, $callback) {
+        $closure = function ($q) use (&$closure, &$relations, $operator, $count, $boolean, $callback) {
             // In order to nest "has", we need to add count relation constraints on the
             // callback Closure. We'll do this by simply passing the Closure its own
             // reference to itself so it calls itself recursively on each segment.
@@ -216,18 +211,14 @@ trait QueriesRelationships
 
             $query->callScope($constraints);
 
-            $query = $query->mergeConstraintsFrom($relation->getQuery())->toBase();
-
-            if (count($query->columns) > 1) {
-                $query->columns = [$query->columns[0]];
-            }
+            $query->mergeConstraintsFrom($relation->getQuery());
 
             // Finally we will add the proper result column alias to the query and run the subselect
             // statement against the query builder. Then we will return the builder instance back
             // to the developer for further constraint chaining that needs to take place on it.
-            $column = $alias ?? Str::snake($name.'_count');
+            $column = snake_case(isset($alias) ? $alias : $name).'_count';
 
-            $this->selectSub($query, $column);
+            $this->selectSub($query->toBase(), $column);
         }
 
         return $this;
@@ -248,7 +239,7 @@ trait QueriesRelationships
         $hasQuery->mergeConstraintsFrom($relation->getQuery());
 
         return $this->canUseExistsForExistenceCheck($operator, $count)
-                ? $this->addWhereExistsQuery($hasQuery->toBase(), $boolean, $operator === '<' && $count === 1)
+                ? $this->addWhereExistsQuery($hasQuery->toBase(), $boolean, $not = ($operator === '<' && $count === 1))
                 : $this->addWhereCountQuery($hasQuery->toBase(), $operator, $count, $boolean);
     }
 
@@ -260,7 +251,9 @@ trait QueriesRelationships
      */
     public function mergeConstraintsFrom(Builder $from)
     {
-        $whereBindings = $from->getQuery()->getRawBindings()['where'] ?? [];
+        $whereBindings = Arr::get(
+            $from->getQuery()->getRawBindings(), 'where', []
+        );
 
         // Here we have some other query that we want to merge the where constraints from. We will
         // copy over any where constraints on the query as well as remove any global scopes the

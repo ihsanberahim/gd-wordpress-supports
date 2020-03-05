@@ -3,7 +3,6 @@
 namespace Illuminate\Database\Schema;
 
 use Closure;
-use LogicException;
 use Illuminate\Database\Connection;
 
 class Builder
@@ -69,7 +68,7 @@ class Builder
     {
         $table = $this->connection->getTablePrefix().$table;
 
-        return count($this->connection->selectFromWriteConnection(
+        return count($this->connection->select(
             $this->grammar->compileTableExists(), [$table]
         )) > 0;
     }
@@ -130,9 +129,9 @@ class Builder
      */
     public function getColumnListing($table)
     {
-        $results = $this->connection->selectFromWriteConnection($this->grammar->compileColumnListing(
-            $this->connection->getTablePrefix().$table
-        ));
+        $table = $this->connection->getTablePrefix().$table;
+
+        $results = $this->connection->select($this->grammar->compileColumnListing($table));
 
         return $this->connection->getPostProcessor()->processColumnListing($results);
     }
@@ -189,30 +188,6 @@ class Builder
         $this->build(tap($this->createBlueprint($table), function ($blueprint) {
             $blueprint->dropIfExists();
         }));
-    }
-
-    /**
-     * Drop all tables from the database.
-     *
-     * @return void
-     *
-     * @throws \LogicException
-     */
-    public function dropAllTables()
-    {
-        throw new LogicException('This database driver does not support dropping all tables.');
-    }
-
-    /**
-     * Drop all views from the database.
-     *
-     * @return void
-     *
-     * @throws \LogicException
-     */
-    public function dropAllViews()
-    {
-        throw new LogicException('This database driver does not support dropping all views.');
     }
 
     /**

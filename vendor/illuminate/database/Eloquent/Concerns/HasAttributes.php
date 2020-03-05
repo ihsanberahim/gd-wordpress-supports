@@ -2,11 +2,11 @@
 
 namespace Illuminate\Database\Eloquent\Concerns;
 
+use Carbon\Carbon;
 use LogicException;
 use DateTimeInterface;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
-use Illuminate\Support\Carbon;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Collection as BaseCollection;
@@ -27,13 +27,6 @@ trait HasAttributes
      * @var array
      */
     protected $original = [];
-
-    /**
-     * The changed model attributes.
-     *
-     * @var array
-     */
-    protected $changes = [];
 
     /**
      * The attributes that should be cast to native types.
@@ -183,15 +176,11 @@ trait HasAttributes
             );
 
             // If the attribute cast was a date or a datetime, we will serialize the date as
-            // a string. This allows the developers to customize how dates are serialized
+            // a string. This allows the developers to customize hwo dates are serialized
             // into an array without affecting how they are persisted into the storage.
             if ($attributes[$key] &&
                 ($value === 'date' || $value === 'datetime')) {
                 $attributes[$key] = $this->serializeDate($attributes[$key]);
-            }
-
-            if ($attributes[$key] && $this->isCustomDateTimeCast($value)) {
-                $attributes[$key] = $attributes[$key]->format(explode(':', $value, 2)[1]);
             }
         }
 
@@ -318,7 +307,7 @@ trait HasAttributes
         }
 
         // Here we will determine if the model base class itself contains this given key
-        // since we don't want to treat any of those methods as relationships because
+        // since we do not want to treat any of those methods are relationships since
         // they are all intended as helper methods and none of these are relations.
         if (method_exists(self::class, $key)) {
             return;
@@ -411,9 +400,8 @@ trait HasAttributes
         $relation = $this->$method();
 
         if (! $relation instanceof Relation) {
-            throw new LogicException(sprintf(
-                '%s::%s must return a relationship instance.', static::class, $method
-            ));
+            throw new LogicException('Relationship method must return an object of type '
+                .'Illuminate\Database\Eloquent\Relations\Relation');
         }
 
         return tap($relation->getResults(), function ($results) use ($method) {
@@ -494,7 +482,6 @@ trait HasAttributes
             case 'date':
                 return $this->asDate($value);
             case 'datetime':
-            case 'custom_datetime':
                 return $this->asDateTime($value);
             case 'timestamp':
                 return $this->asTimestamp($value);
@@ -511,23 +498,7 @@ trait HasAttributes
      */
     protected function getCastType($key)
     {
-        if ($this->isCustomDateTimeCast($this->getCasts()[$key])) {
-            return 'custom_datetime';
-        }
-
         return trim(strtolower($this->getCasts()[$key]));
-    }
-
-    /**
-     * Determine if the cast type is a custom date time cast.
-     *
-     * @param  string  $cast
-     * @return bool
-     */
-    protected function isCustomDateTimeCast($cast)
-    {
-        return strncmp($cast, 'date:', 5) === 0 ||
-               strncmp($cast, 'datetime:', 9) === 0;
     }
 
     /**
@@ -535,7 +506,7 @@ trait HasAttributes
      *
      * @param  string  $key
      * @param  mixed  $value
-     * @return mixed
+     * @return $this
      */
     public function setAttribute($key, $value)
     {
@@ -543,7 +514,9 @@ trait HasAttributes
         // which simply lets the developers tweak the attribute as it is set on
         // the model, such as "json_encoding" an listing of data for storage.
         if ($this->hasSetMutator($key)) {
-            return $this->setMutatedAttributeValue($key, $value);
+            $method = 'set'.Str::studly($key).'Attribute';
+
+            return $this->{$method}($value);
         }
 
         // If an attribute is listed as a "date", we'll convert it from a DateTime
@@ -578,18 +551,6 @@ trait HasAttributes
     public function hasSetMutator($key)
     {
         return method_exists($this, 'set'.Str::studly($key).'Attribute');
-    }
-
-    /**
-     * Set the value of an attribute using its mutator.
-     *
-     * @param  string  $key
-     * @param  mixed  $value
-     * @return mixed
-     */
-    protected function setMutatedAttributeValue($key, $value)
-    {
-        return $this->{'set'.Str::studly($key).'Attribute'}($value);
     }
 
     /**
@@ -696,7 +657,7 @@ trait HasAttributes
      * Return a timestamp as DateTime object with time set to 00:00:00.
      *
      * @param  mixed  $value
-     * @return \Illuminate\Support\Carbon
+     * @return \Carbon\Carbon
      */
     protected function asDate($value)
     {
@@ -707,7 +668,7 @@ trait HasAttributes
      * Return a timestamp as DateTime object.
      *
      * @param  mixed  $value
-     * @return \Illuminate\Support\Carbon
+     * @return \Carbon\Carbon
      */
     protected function asDateTime($value)
     {
@@ -745,7 +706,7 @@ trait HasAttributes
         // the database connection and use that format to create the Carbon object
         // that is returned back out to the developers after we convert it here.
         return Carbon::createFromFormat(
-            str_replace('.v', '.u', $this->getDateFormat()), $value
+            $this->getDateFormat(), $value
         );
     }
 
@@ -768,7 +729,7 @@ trait HasAttributes
      */
     public function fromDateTime($value)
     {
-        return empty($value) ? $value : $this->asDateTime($value)->format(
+        return $this->asDateTime($value)->format(
             $this->getDateFormat()
         );
     }
@@ -814,7 +775,7 @@ trait HasAttributes
      *
      * @return string
      */
-    public function getDateFormat()
+    protected function getDateFormat()
     {
         return $this->dateFormat ?: $this->getConnection()->getQueryGrammar()->getDateFormat();
     }
@@ -925,23 +886,6 @@ trait HasAttributes
     }
 
     /**
-     * Get a subset of the model's attributes.
-     *
-     * @param  array|mixed  $attributes
-     * @return array
-     */
-    public function only($attributes)
-    {
-        $results = [];
-
-        foreach (is_array($attributes) ? $attributes : func_get_args() as $attribute) {
-            $results[$attribute] = $this->getAttribute($attribute);
-        }
-
-        return $results;
-    }
-
-    /**
      * Sync the original attributes with the current.
      *
      * @return $this
@@ -967,18 +911,6 @@ trait HasAttributes
     }
 
     /**
-     * Sync the changed attributes.
-     *
-     * @return $this
-     */
-    public function syncChanges()
-    {
-        $this->changes = $this->getDirty();
-
-        return $this;
-    }
-
-    /**
      * Determine if the model or given attribute(s) have been modified.
      *
      * @param  array|string|null  $attributes
@@ -986,9 +918,28 @@ trait HasAttributes
      */
     public function isDirty($attributes = null)
     {
-        return $this->hasChanges(
-            $this->getDirty(), is_array($attributes) ? $attributes : func_get_args()
-        );
+        $dirty = $this->getDirty();
+
+        // If no specific attributes were provided, we will just see if the dirty array
+        // already contains any attributes. If it does we will just return that this
+        // count is greater than zero. Else, we need to check specific attributes.
+        if (is_null($attributes)) {
+            return count($dirty) > 0;
+        }
+
+        $attributes = is_array($attributes)
+                            ? $attributes : func_get_args();
+
+        // Here we will spin through every attribute and see if this is in the array of
+        // dirty attributes. If it is, we will return true and if we make it through
+        // all of the attributes for the entire array we will return false at end.
+        foreach ($attributes as $attribute) {
+            if (array_key_exists($attribute, $dirty)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -1003,47 +954,6 @@ trait HasAttributes
     }
 
     /**
-     * Determine if the model or given attribute(s) have been modified.
-     *
-     * @param  array|string|null  $attributes
-     * @return bool
-     */
-    public function wasChanged($attributes = null)
-    {
-        return $this->hasChanges(
-            $this->getChanges(), is_array($attributes) ? $attributes : func_get_args()
-        );
-    }
-
-    /**
-     * Determine if the given attributes were changed.
-     *
-     * @param  array  $changes
-     * @param  array|string|null  $attributes
-     * @return bool
-     */
-    protected function hasChanges($changes, $attributes = null)
-    {
-        // If no specific attributes were provided, we will just see if the dirty array
-        // already contains any attributes. If it does we will just return that this
-        // count is greater than zero. Else, we need to check specific attributes.
-        if (empty($attributes)) {
-            return count($changes) > 0;
-        }
-
-        // Here we will spin through every attribute and see if this is in the array of
-        // dirty attributes. If it is, we will return true and if we make it through
-        // all of the attributes for the entire array we will return false at end.
-        foreach (Arr::wrap($attributes) as $attribute) {
-            if (array_key_exists($attribute, $changes)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
      * Get the attributes that have been changed since last sync.
      *
      * @return array
@@ -1052,8 +962,11 @@ trait HasAttributes
     {
         $dirty = [];
 
-        foreach ($this->getAttributes() as $key => $value) {
-            if (! $this->originalIsEquivalent($key, $value)) {
+        foreach ($this->attributes as $key => $value) {
+            if (! array_key_exists($key, $this->original)) {
+                $dirty[$key] = $value;
+            } elseif ($value !== $this->original[$key] &&
+                    ! $this->originalIsNumericallyEquivalent($key)) {
                 $dirty[$key] = $value;
             }
         }
@@ -1062,44 +975,22 @@ trait HasAttributes
     }
 
     /**
-     * Get the attributes that were changed.
+     * Determine if the new and old values for a given key are numerically equivalent.
      *
-     * @return array
-     */
-    public function getChanges()
-    {
-        return $this->changes;
-    }
-
-    /**
-     * Determine if the new and old values for a given key are equivalent.
-     *
-     * @param  string $key
-     * @param  mixed  $current
+     * @param  string  $key
      * @return bool
      */
-    protected function originalIsEquivalent($key, $current)
+    protected function originalIsNumericallyEquivalent($key)
     {
-        if (! array_key_exists($key, $this->original)) {
-            return false;
-        }
+        $current = $this->attributes[$key];
 
-        $original = $this->getOriginal($key);
+        $original = $this->original[$key];
 
-        if ($current === $original) {
-            return true;
-        } elseif (is_null($current)) {
-            return false;
-        } elseif ($this->isDateAttribute($key)) {
-            return $this->fromDateTime($current) ===
-                   $this->fromDateTime($original);
-        } elseif ($this->hasCast($key)) {
-            return $this->castAttribute($key, $current) ===
-                   $this->castAttribute($key, $original);
-        }
-
+        // This method checks if the two values are numerically equivalent even if they
+        // are different types. This is in case the two values are not the same type
+        // we can do a fair comparison of the two values to know if this is dirty.
         return is_numeric($current) && is_numeric($original)
-                && strcmp((string) $current, (string) $original) === 0;
+            && strcmp((string) $current, (string) $original) === 0;
     }
 
     /**

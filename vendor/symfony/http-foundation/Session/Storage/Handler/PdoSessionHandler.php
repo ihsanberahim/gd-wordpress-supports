@@ -32,7 +32,7 @@ namespace Symfony\Component\HttpFoundation\Session\Storage\Handler;
  * Saving it in a character column could corrupt the data. You can use createTable()
  * to initialize a correctly defined table.
  *
- * @see http://php.net/sessionhandlerinterface
+ * @see https://php.net/sessionhandlerinterface
  *
  * @author Fabien Potencier <fabien@symfony.com>
  * @author Michael Williams <michael.williams@funsational.com>
@@ -218,7 +218,7 @@ class PdoSessionHandler extends AbstractSessionHandler
                 // - trailing space removal
                 // - case-insensitivity
                 // - language processing like é == e
-                $sql = "CREATE TABLE $this->table ($this->idCol VARBINARY(128) NOT NULL PRIMARY KEY, $this->dataCol BLOB NOT NULL, $this->lifetimeCol MEDIUMINT NOT NULL, $this->timeCol INTEGER UNSIGNED NOT NULL) COLLATE utf8_bin, ENGINE = InnoDB";
+                $sql = "CREATE TABLE $this->table ($this->idCol VARBINARY(128) NOT NULL PRIMARY KEY, $this->dataCol BLOB NOT NULL, $this->lifetimeCol INTEGER UNSIGNED NOT NULL, $this->timeCol INTEGER UNSIGNED NOT NULL) COLLATE utf8mb4_bin, ENGINE = InnoDB";
                 break;
             case 'sqlite':
                 $sql = "CREATE TABLE $this->table ($this->idCol TEXT NOT NULL PRIMARY KEY, $this->dataCol BLOB NOT NULL, $this->lifetimeCol INTEGER NOT NULL, $this->timeCol INTEGER NOT NULL)";
@@ -286,7 +286,7 @@ class PdoSessionHandler extends AbstractSessionHandler
     }
 
     /**
-     * {@inheritdoc}
+     * @return bool
      */
     public function gc($maxlifetime)
     {
@@ -538,7 +538,7 @@ class PdoSessionHandler extends AbstractSessionHandler
      * PDO::rollback or PDO::inTransaction for SQLite.
      *
      * Also MySQLs default isolation, REPEATABLE READ, causes deadlock for different sessions
-     * due to http://www.mysqlperformanceblog.com/2013/12/12/one-more-innodb-gap-lock-to-avoid/ .
+     * due to https://percona.com/blog/2013/12/12/one-more-innodb-gap-lock-to-avoid/ .
      * So we change it to READ COMMITTED.
      */
     private function beginTransaction()
@@ -668,6 +668,8 @@ class PdoSessionHandler extends AbstractSessionHandler
     /**
      * Executes an application-level lock on the database.
      *
+     * @param string $sessionId Session ID
+     *
      * @return \PDOStatement The statement that needs to be executed later to release the lock
      *
      * @throws \DomainException When an unsupported PDO driver is used
@@ -676,7 +678,7 @@ class PdoSessionHandler extends AbstractSessionHandler
      *       - for oci using DBMS_LOCK.REQUEST
      *       - for sqlsrv using sp_getapplock with LockOwner = Session
      */
-    private function doAdvisoryLock(string $sessionId)
+    private function doAdvisoryLock($sessionId)
     {
         switch ($this->driver) {
             case 'mysql':
@@ -731,8 +733,12 @@ class PdoSessionHandler extends AbstractSessionHandler
      * Encodes the first 4 (when PHP_INT_SIZE == 4) or 8 characters of the string as an integer.
      *
      * Keep in mind, PHP integers are signed.
+     *
+     * @param string $string
+     *
+     * @return int
      */
-    private function convertStringToInt(string $string): int
+    private function convertStringToInt($string)
     {
         if (4 === \PHP_INT_SIZE) {
             return (\ord($string[3]) << 24) + (\ord($string[2]) << 16) + (\ord($string[1]) << 8) + \ord($string[0]);
@@ -747,9 +753,11 @@ class PdoSessionHandler extends AbstractSessionHandler
     /**
      * Return a locking or nonlocking SQL query to read session information.
      *
+     * @return string The SQL string
+     *
      * @throws \DomainException When an unsupported PDO driver is used
      */
-    private function getSelectSql(): string
+    private function getSelectSql()
     {
         if (self::LOCK_TRANSACTIONAL === $this->lockMode) {
             $this->beginTransaction();
@@ -840,8 +848,14 @@ class PdoSessionHandler extends AbstractSessionHandler
 
     /**
      * Returns a merge/upsert (i.e. insert or update) statement when supported by the database for writing session data.
+     *
+     * @param string $sessionId   Session ID
+     * @param string $data        Encoded session data
+     * @param int    $maxlifetime session.gc_maxlifetime
+     *
+     * @return \PDOStatement|null The merge statement or null when not supported
      */
-    private function getMergeStatement(string $sessionId, string $data, int $maxlifetime): ?\PDOStatement
+    private function getMergeStatement($sessionId, $data, $maxlifetime)
     {
         switch (true) {
             case 'mysql' === $this->driver:
@@ -850,7 +864,7 @@ class PdoSessionHandler extends AbstractSessionHandler
                 break;
             case 'sqlsrv' === $this->driver && version_compare($this->pdo->getAttribute(\PDO::ATTR_SERVER_VERSION), '10', '>='):
                 // MERGE is only available since SQL Server 2008 and must be terminated by semicolon
-                // It also requires HOLDLOCK according to http://weblogs.sqlteam.com/dang/archive/2009/01/31/UPSERT-Race-Condition-With-MERGE.aspx
+                // It also requires HOLDLOCK according to https://weblogs.sqlteam.com/dang/2009/01/31/upsert-race-condition-with-merge/
                 $mergeSql = "MERGE INTO $this->table WITH (HOLDLOCK) USING (SELECT 1 AS dummy) AS src ON ($this->idCol = ?) ".
                     "WHEN NOT MATCHED THEN INSERT ($this->idCol, $this->dataCol, $this->lifetimeCol, $this->timeCol) VALUES (?, ?, ?, ?) ".
                     "WHEN MATCHED THEN UPDATE SET $this->dataCol = ?, $this->lifetimeCol = ?, $this->timeCol = ?;";
@@ -863,7 +877,7 @@ class PdoSessionHandler extends AbstractSessionHandler
                     "ON CONFLICT ($this->idCol) DO UPDATE SET ($this->dataCol, $this->lifetimeCol, $this->timeCol) = (EXCLUDED.$this->dataCol, EXCLUDED.$this->lifetimeCol, EXCLUDED.$this->timeCol)";
                 break;
             default:
-                // MERGE is not supported with LOBs: http://www.oracle.com/technetwork/articles/fuecks-lobs-095315.html
+                // MERGE is not supported with LOBs: https://oracle.com/technetwork/articles/fuecks-lobs-095315.html
                 return null;
         }
 
